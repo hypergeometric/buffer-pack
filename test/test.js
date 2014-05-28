@@ -50,7 +50,7 @@ function assertCodec(codec, value, hex) {
 }
 
 function assertStruct(struct, value, hex) {
-  expect(struct.encode(value)).to.deep.equal(new Buffer(hex, 'hex'));
+  expect(struct.encode(value).toString('hex')).to.deep.equal(hex);
   expect(struct.decode(new Buffer(hex, 'hex'))).to.deep.equal(value);
 }
 
@@ -283,40 +283,40 @@ describe('struct', function () {
     });
 
     it('b64 (big-endian 64 bit number)', function () {
-      var struct = Struct().b64('foo');
-      assertStruct(struct, { foo: 500 }, '00000000000001f4');
-      assertStruct(struct, { foo: Math.pow(2, 53) - 1 }, '001fffffffffffff');
+      var struct = Struct().b64('foo').b64('bar');
+      assertStruct(struct, { foo: 500, bar: 501 }, '00000000000001f4' + '00000000000001f5');
+      assertStruct(struct, { foo: Math.pow(2, 53) - 1, bar: Math.pow(2, 53) - 2 }, '001fffffffffffff' + '001ffffffffffffe');
       expect(function () {
-        struct.encode({ foo: Math.pow(2, 53) });
+        struct.encode({ foo: Math.pow(2, 53), bar: Math.pow(2, 53) });
       }).to.throw();
     });
 
     it('l64 (little-endian 64 bit number)', function () {
-      var struct = Struct().l64('foo');
-      assertStruct(struct, { foo: 500 }, 'f401000000000000');
-      assertStruct(struct, { foo: Math.pow(2, 53) - 1 }, 'ffffffffffff1f00');
+      var struct = Struct().l64('foo').l64('bar');
+      assertStruct(struct, { foo: 500, bar: 501 }, 'f401000000000000' + 'f501000000000000');
+      assertStruct(struct, { foo: Math.pow(2, 53) - 1, bar: Math.pow(2, 53) - 2 }, 'ffffffffffff1f00' + 'feffffffffff1f00');
       expect(function () {
-        struct.encode({ foo: Math.pow(2, 53) });
+        struct.encode({ foo: Math.pow(2, 53), bar:Math.pow(2, 53) });
       }).to.throw();
     });
 
     it('b64s (big-endian signed 64 bit number)', function () {
-      var struct = Struct().b64s('foo');
-      assertStruct(struct, { foo: 500 }, '00000000000001f4');
-      assertStruct(struct, { foo: -500 }, 'fffffffffffffe0c');
-      assertStruct(struct, { foo: -(Math.pow(2, 53) - 1) }, 'ffe0000000000001');
+      var struct = Struct().b64s('foo').b64s('bar');
+      assertStruct(struct, { foo: 500, bar: 501 }, '00000000000001f4' + '00000000000001f5');
+      assertStruct(struct, { foo: -500, bar: -501 }, 'fffffffffffffe0c' + 'fffffffffffffe0b');
+      assertStruct(struct, { foo: -(Math.pow(2, 53) - 1), bar: -(Math.pow(2, 53) - 2) }, 'ffe0000000000001' + 'ffe0000000000002');
       expect(function () {
-        struct.encode({ foo: -Math.pow(2, 53) });
+        struct.encode({ foo: -Math.pow(2, 53), bar: -Math.pow(2, 53) });
       }).to.throw();
     });
 
     it('l64s (little-endian signed 64 bit number)', function () {
-      var struct = Struct().l64s('foo');
-      assertStruct(struct, { foo: 500 }, 'f401000000000000');
-      assertStruct(struct, { foo: -500 }, '0cfeffffffffffff');
-      assertStruct(struct, { foo: -(Math.pow(2, 53) - 1) }, '010000000000e0ff');
+      var struct = Struct().l64s('foo').l64s('bar');
+      assertStruct(struct, { foo: 500, bar: 501 }, 'f401000000000000' + 'f501000000000000');
+      assertStruct(struct, { foo: -500, bar: -501 }, '0cfeffffffffffff' + '0bfeffffffffffff');
+      assertStruct(struct, { foo: -(Math.pow(2, 53) - 1), bar: -(Math.pow(2, 53) - 2) }, '010000000000e0ff' + '020000000000e0ff');
       expect(function () {
-        struct.encode({ foo: -Math.pow(2, 53) });
+        struct.encode({ foo: -Math.pow(2, 53), bar: -Math.pow(2, 53) });
       }).to.throw();
     });
 
