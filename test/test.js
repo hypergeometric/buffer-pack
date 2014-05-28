@@ -40,6 +40,21 @@ Struct.addCodec('lvarint', {
   }
 });
 
+Struct.addCodec('default', function (options) {
+  var defaultValue = options.default || 0xff;
+  return {
+    encode: function (value) {
+      Struct.codecs.b8.encode.call(this, value || defaultValue);
+    },
+    decode: function () {
+      return Struct.codecs.b8.decode.call(this);
+    },
+    size: function () {
+      return 1;
+    }
+  };
+});
+
 function assertCodec(codec, value, hex) {
   var encoded = new Buffer(codec.size(value));
   codec.encode.call({ buffer: encoded, offset: 0 }, value);
@@ -361,6 +376,15 @@ describe('struct', function () {
         });
       assertStruct(struct, { foo: [{ bar: 8 }, { bar: 16 }] }, '0810');
     });
+  });
+
+  it('ensure options object exists', function () {
+    var struct = Struct()
+      .default('foo', { default: 0xcc })
+      .default('bar');
+    assertStruct(struct, { foo: 1, bar: 2 }, '0102');
+    expect(struct.encode({}).toString('hex')).to.equal('ccff');
+    expect(struct.decode(new Buffer('ccff', 'hex'))).to.deep.equal({ foo: 0xcc, bar: 0xff });
   });
 
   it('variable length buffer', function () {
