@@ -1,0 +1,26 @@
+{
+  "name": "struct",
+  "version": "0.0.1",
+  "description": "",
+  "main": "lib/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/coinative/struct.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/coinative/struct/issues"
+  },
+  "homepage": "https://github.com/coinative/struct",
+  "scripts": {
+    "test": "./node_modules/.bin/mocha -r ./test/support/env -R dot ./test",
+    "test-cov": "./node_modules/.bin/istanbul cover ./node_modules/mocha/bin/_mocha -- -r ./test/support/env -R dot ./test",
+    "test-travis": "./node_modules/.bin/istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -r ./test/support/env -R spec ./test"
+  },
+  "devDependencies": {
+    "chai": "^1.9.1",
+    "istanbul": "^0.2.10",
+    "mocha": "^1.19.0"
+  }
+}
