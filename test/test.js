@@ -341,6 +341,15 @@ describe('struct', function () {
     });
   });
 
+  it('variable length buffer', function () {
+    var struct = Struct()
+      .l8('len')
+      .buffer('buf', function () { return this.len; });
+    assertStruct(struct, { len: 0, buf: new Buffer(0) }, '00');
+    assertStruct(struct, { len: 1, buf: new Buffer([0]) }, '0100');
+    assertStruct(struct, { len: 8, buf: new Buffer([0, 1, 2, 3, 4, 5, 6, 7]) }, '080001020304050607');
+  });
+
   it('nested arrays', function () {
     var struct = Struct()
       .array('first', 3, Struct()
