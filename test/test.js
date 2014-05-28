@@ -170,22 +170,22 @@ describe('struct', function () {
     });
 
     it('buffer', function () {
-      var codec = Struct.codecs.buffer(4);
+      var codec = Struct.codecs.buffer({ length: 4 });
       assertCodec(codec, new Buffer([1, 2, 3, 4]), '01020304');
     });
 
     it('str(ascii)', function () {
-      var codec = Struct.codecs.str(2, 'ascii');
+      var codec = Struct.codecs.str({ length: 2, encoding: 'ascii' });
       assertCodec(codec, 'ab', '6162');
     });
 
     it('str(utf8)', function () {
-      var codec = Struct.codecs.str(3, 'utf8');
+      var codec = Struct.codecs.str({ length: 3, encoding: 'utf8' });
       assertCodec(codec, '4\u00a3', '34c2a3');
     });
 
     it('array', function () {
-      var codec = Struct.codecs.array(3, Struct.codecs.b8);
+      var codec = Struct.codecs.array({ length: 3, type: Struct.codecs.b8 });
       assertCodec(codec, [1, 2, 3], '010203');
     });
 
@@ -321,22 +321,44 @@ describe('struct', function () {
     });
 
     it('buffer', function () {
-      var struct = Struct().buffer('foo', 4).buffer('bar', 3);
+      var struct = Struct()
+        .buffer('foo', {
+          length: 4
+        })
+        .buffer('bar', {
+          length: 3
+        });
       assertStruct(struct, { foo: new Buffer([1, 2, 3, 4]), bar: new Buffer([5, 6, 7]) }, '01020304050607');
     });
 
     it('str', function () {
-      var struct = Struct().str('foo', 2, 'ascii').str('bar', 3, 'utf8');
+      var struct = Struct()
+        .str('foo', {
+          length: 2,
+          encoding: 'ascii'
+        })
+        .str('bar', {
+          length: 3,
+          encoding: 'utf8'
+        });
       assertStruct(struct, { foo: 'ab', bar: '\u00a34' }, '6162c2a334');
     });
 
     it('array (codec)', function () {
-      var struct = Struct().array('foo', 2, Struct.codecs.b8);
+      var struct = Struct()
+        .array('foo', {
+          length: 2,
+          type: Struct.codecs.b8
+        });
       assertStruct(struct, { foo: [8, 16] }, '0810');
     });
 
     it('array (struct)', function () {
-      var struct = Struct().array('foo', 2, Struct().b8('bar'));
+      var struct = Struct()
+        .array('foo', {
+          length: 2,
+          type: Struct().b8('bar')
+        });
       assertStruct(struct, { foo: [{ bar: 8 }, { bar: 16 }] }, '0810');
     });
   });
@@ -344,7 +366,9 @@ describe('struct', function () {
   it('variable length buffer', function () {
     var struct = Struct()
       .l8('len')
-      .buffer('buf', function () { return this.len; });
+      .buffer('buf', {
+        length: function () { return this.len; }
+      });
     assertStruct(struct, { len: 0, buf: new Buffer(0) }, '00');
     assertStruct(struct, { len: 1, buf: new Buffer([0]) }, '0100');
     assertStruct(struct, { len: 8, buf: new Buffer([0, 1, 2, 3, 4, 5, 6, 7]) }, '080001020304050607');
@@ -352,11 +376,15 @@ describe('struct', function () {
 
   it('nested arrays', function () {
     var struct = Struct()
-      .array('first', 3, Struct()
-        .array('second', 2, Struct()
-          .array('third', 1, Struct.codecs.b8)
-        )
-      );
+      .array('first', {
+        length: 3,
+        type: Struct()
+          .array('second', {
+            length: 2,
+            type: Struct()
+              .array('third', { length: 1, type: Struct.codecs.b8 })
+          })
+      });
     assertStruct(struct, {
       first: [
         {
@@ -385,15 +413,19 @@ describe('struct', function () {
     var struct = Struct()
       .b8('b8')
       .l32s('l32s')
-      .array('array', 2, Struct()
-        .str('str', 10)
-        .b16('b16')
-        .buffer('buffer', 4)
-        .lvarint('lvarint')
-      )
-      .array('array2', 3, Struct()
-        .b32('b32')
-      );
+      .array('array', {
+        length: 2,
+        type: Struct()
+          .str('str', { length: 10 })
+          .b16('b16')
+          .buffer('buffer', { length: 4 })
+          .lvarint('lvarint')
+      })
+      .array('array2', {
+        length: 3,
+        type: Struct()
+          .b32('b32')
+      });
     assertStruct(struct, {
       b8: 32,
       l32s: -432213214,
