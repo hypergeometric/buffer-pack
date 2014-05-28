@@ -209,12 +209,10 @@ describe('struct', function () {
 
     it('str(utf8, pad)', function () {
       var codec = Struct.codecs.str({ length: 3, pad: 'a' });
-      assertCodecEncode(codec, '4', '346161');
-      assertCodecDecode(codec, '4aa', '346161');
+      assertCodec(codec, '4', '346161');
 
       codec = Struct.codecs.str({ length: 3, pad: 0 });
-      assertCodecEncode(codec, '4', '340000');
-      assertCodecDecode(codec, '4\x00\x00', '340000');
+      assertCodec(codec, '4', '340000');
     });
 
     it('array', function () {
