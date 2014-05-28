@@ -56,12 +56,19 @@ Struct.addCodec('default', function (options) {
 });
 
 function assertCodec(codec, value, hex) {
+  assertCodecEncode(codec, value, hex);
+  assertCodecDecode(codec, value, hex);
+}
+
+function assertCodecEncode(codec, value, hex) {
   var encoded = new Buffer(codec.size(value));
   codec.encode.call({ buffer: encoded, offset: 0 }, value);
-  var decoded = codec.decode.call({ buffer: new Buffer(hex, 'hex'), offset: 0 });
-
-  expect(decoded).to.deep.equal(value);
   expect(encoded).to.deep.equal(new Buffer(hex, 'hex'));
+}
+
+function assertCodecDecode(codec, value, hex) {
+  var decoded = codec.decode.call({ buffer: new Buffer(hex, 'hex'), offset: 0 });
+  expect(decoded).to.deep.equal(value);
 }
 
 function assertStruct(struct, value, hex) {
@@ -197,6 +204,12 @@ describe('struct', function () {
     it('str(utf8)', function () {
       var codec = Struct.codecs.str({ length: 3, encoding: 'utf8' });
       assertCodec(codec, '4\u00a3', '34c2a3');
+    });
+
+    it('str(utf8, pad)', function () {
+      var codec = Struct.codecs.str({ length: 3, pad: 'a' });
+      assertCodecEncode(codec, '4', '346161');
+      assertCodecDecode(codec, '4aa', '346161');
     });
 
     it('array', function () {
