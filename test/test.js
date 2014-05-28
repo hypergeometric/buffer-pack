@@ -1,30 +1,30 @@
 var Struct = require('../');
 
 Struct.addCodec('lvarint', {
-  encode: function (value) {
+  serialize: function (value) {
     if (value < 0xfd) {
-      Struct.codecs.l8.encode.call(this, value);
+      Struct.codecs.l8.serialize.call(this, value);
     } else if (value <= 0xffff) {
-      Struct.codecs.l8.encode.call(this, 0xfd);
-      Struct.codecs.l16.encode.call(this, value);
+      Struct.codecs.l8.serialize.call(this, 0xfd);
+      Struct.codecs.l16.serialize.call(this, value);
     } else if (value <= 0xffffffff) {
-      Struct.codecs.l8.encode.call(this, 0xfe);
-      Struct.codecs.l32.encode.call(this, value);
+      Struct.codecs.l8.serialize.call(this, 0xfe);
+      Struct.codecs.l32.serialize.call(this, value);
     } else {
-      Struct.codecs.l8.encode.call(this, 0xff);
-      Struct.codecs.l64.encode.call(this, value);
+      Struct.codecs.l8.serialize.call(this, 0xff);
+      Struct.codecs.l64.serialize.call(this, value);
     }
   },
-  decode: function () {
-    var first = Struct.codecs.b8.decode.call(this);
+  parse: function () {
+    var first = Struct.codecs.b8.parse.call(this);
     if (first < 0xfd) {
       return first;
     } else if (first === 0xfd) {
-      return Struct.codecs.l16.decode.call(this);
+      return Struct.codecs.l16.parse.call(this);
     } else if (first === 0xfe) {
-      return Struct.codecs.l32.decode.call(this);
+      return Struct.codecs.l32.parse.call(this);
     } else {
-      return Struct.codecs.l64.decode.call(this);
+      return Struct.codecs.l64.parse.call(this);
     }
   },
   size: function (value) {
@@ -43,11 +43,11 @@ Struct.addCodec('lvarint', {
 Struct.addCodec('default', function (options) {
   var defaultValue = options.default || 0xff;
   return {
-    encode: function (value) {
-      Struct.codecs.b8.encode.call(this, value || defaultValue);
+    serialize: function (value) {
+      Struct.codecs.b8.serialize.call(this, value || defaultValue);
     },
-    decode: function () {
-      return Struct.codecs.b8.decode.call(this);
+    parse: function () {
+      return Struct.codecs.b8.parse.call(this);
     },
     size: function () {
       return 1;
@@ -61,20 +61,20 @@ function assertCodec(codec, value, hex) {
 }
 
 function assertCodecEncode(codec, value, hex) {
-  var encoded = new Buffer(codec.size(value));
-  encoded.fill(0xff);
-  codec.encode.call({ buffer: encoded, offset: 0 }, value);
-  expect(encoded).to.deep.equal(new Buffer(hex, 'hex'));
+  var serialized = new Buffer(codec.size(value));
+  serialized.fill(0xff);
+  codec.serialize.call({ buffer: serialized, offset: 0 }, value);
+  expect(serialized).to.deep.equal(new Buffer(hex, 'hex'));
 }
 
 function assertCodecDecode(codec, value, hex) {
-  var decoded = codec.decode.call({ buffer: new Buffer(hex, 'hex'), offset: 0 });
-  expect(decoded).to.deep.equal(value);
+  var parsed = codec.parse.call({ buffer: new Buffer(hex, 'hex'), offset: 0 });
+  expect(parsed).to.deep.equal(value);
 }
 
 function assertStruct(struct, value, hex) {
-  expect(struct.encode(value).toString('hex')).to.deep.equal(hex);
-  expect(struct.decode(new Buffer(hex, 'hex'))).to.deep.equal(value);
+  expect(struct.serialize(value).toString('hex')).to.deep.equal(hex);
+  expect(struct.parse(new Buffer(hex, 'hex'))).to.deep.equal(value);
 }
 
 describe('struct', function () {
@@ -159,7 +159,7 @@ describe('struct', function () {
       assertCodec(codec, 500, '00000000000001f4');
       assertCodec(codec, Math.pow(2, 53) - 1, '001fffffffffffff');
       expect(function () {
-        codec.encode(Math.pow(2, 53));
+        codec.serialize(Math.pow(2, 53));
       }).to.throw();
     });
 
@@ -168,7 +168,7 @@ describe('struct', function () {
       assertCodec(codec, 500, 'f401000000000000');
       assertCodec(codec, Math.pow(2, 53) - 1, 'ffffffffffff1f00');
       expect(function () {
-        codec.encode(Math.pow(2, 53));
+        codec.serialize(Math.pow(2, 53));
       }).to.throw();
     });
 
@@ -178,7 +178,7 @@ describe('struct', function () {
       assertCodec(codec, -500, 'fffffffffffffe0c');
       assertCodec(codec, -(Math.pow(2, 53) - 1), 'ffe0000000000001');
       expect(function () {
-        codec.encode(-Math.pow(2, 53));
+        codec.serialize(-Math.pow(2, 53));
       }).to.throw();
     });
 
@@ -188,7 +188,7 @@ describe('struct', function () {
       assertCodec(codec, -500, '0cfeffffffffffff');
       assertCodec(codec, -(Math.pow(2, 53) - 1), '010000000000e0ff');
       expect(function () {
-        codec.encode(-Math.pow(2, 53));
+        codec.serialize(-Math.pow(2, 53));
       }).to.throw();
     });
 
@@ -318,7 +318,7 @@ describe('struct', function () {
       assertStruct(struct, { foo: 500, bar: 501 }, '00000000000001f4' + '00000000000001f5');
       assertStruct(struct, { foo: Math.pow(2, 53) - 1, bar: Math.pow(2, 53) - 2 }, '001fffffffffffff' + '001ffffffffffffe');
       expect(function () {
-        struct.encode({ foo: Math.pow(2, 53), bar: Math.pow(2, 53) });
+        struct.serialize({ foo: Math.pow(2, 53), bar: Math.pow(2, 53) });
       }).to.throw();
     });
 
@@ -327,7 +327,7 @@ describe('struct', function () {
       assertStruct(struct, { foo: 500, bar: 501 }, 'f401000000000000' + 'f501000000000000');
       assertStruct(struct, { foo: Math.pow(2, 53) - 1, bar: Math.pow(2, 53) - 2 }, 'ffffffffffff1f00' + 'feffffffffff1f00');
       expect(function () {
-        struct.encode({ foo: Math.pow(2, 53), bar:Math.pow(2, 53) });
+        struct.serialize({ foo: Math.pow(2, 53), bar:Math.pow(2, 53) });
       }).to.throw();
     });
 
@@ -337,7 +337,7 @@ describe('struct', function () {
       assertStruct(struct, { foo: -500, bar: -501 }, 'fffffffffffffe0c' + 'fffffffffffffe0b');
       assertStruct(struct, { foo: -(Math.pow(2, 53) - 1), bar: -(Math.pow(2, 53) - 2) }, 'ffe0000000000001' + 'ffe0000000000002');
       expect(function () {
-        struct.encode({ foo: -Math.pow(2, 53), bar: -Math.pow(2, 53) });
+        struct.serialize({ foo: -Math.pow(2, 53), bar: -Math.pow(2, 53) });
       }).to.throw();
     });
 
@@ -347,7 +347,7 @@ describe('struct', function () {
       assertStruct(struct, { foo: -500, bar: -501 }, '0cfeffffffffffff' + '0bfeffffffffffff');
       assertStruct(struct, { foo: -(Math.pow(2, 53) - 1), bar: -(Math.pow(2, 53) - 2) }, '010000000000e0ff' + '020000000000e0ff');
       expect(function () {
-        struct.encode({ foo: -Math.pow(2, 53), bar: -Math.pow(2, 53) });
+        struct.serialize({ foo: -Math.pow(2, 53), bar: -Math.pow(2, 53) });
       }).to.throw();
     });
 
@@ -399,8 +399,8 @@ describe('struct', function () {
       .default('foo', { default: 0xcc })
       .default('bar');
     assertStruct(struct, { foo: 1, bar: 2 }, '0102');
-    expect(struct.encode({}).toString('hex')).to.equal('ccff');
-    expect(struct.decode(new Buffer('ccff', 'hex'))).to.deep.equal({ foo: 0xcc, bar: 0xff });
+    expect(struct.serialize({}).toString('hex')).to.equal('ccff');
+    expect(struct.parse(new Buffer('ccff', 'hex'))).to.deep.equal({ foo: 0xcc, bar: 0xff });
   });
 
   it('variable length buffer', function () {
