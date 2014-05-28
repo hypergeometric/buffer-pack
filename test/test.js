@@ -62,6 +62,7 @@ function assertCodec(codec, value, hex) {
 
 function assertCodecEncode(codec, value, hex) {
   var encoded = new Buffer(codec.size(value));
+  encoded.fill(0xff);
   codec.encode.call({ buffer: encoded, offset: 0 }, value);
   expect(encoded).to.deep.equal(new Buffer(hex, 'hex'));
 }
@@ -210,6 +211,10 @@ describe('struct', function () {
       var codec = Struct.codecs.str({ length: 3, pad: 'a' });
       assertCodecEncode(codec, '4', '346161');
       assertCodecDecode(codec, '4aa', '346161');
+
+      codec = Struct.codecs.str({ length: 3, pad: 0 });
+      assertCodecEncode(codec, '4', '340000');
+      assertCodecDecode(codec, '4\x00\x00', '340000');
     });
 
     it('array', function () {
