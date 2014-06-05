@@ -1,30 +1,30 @@
 var Struct = require('../');
 
-Struct.addCodec('lvarint', {
+Struct.addCodec('lvaruint', {
   serialize: function (value) {
     if (value < 0xfd) {
-      Struct.codecs.l8.serialize.call(this, value);
+      Struct.codecs.uint8.serialize.call(this, value);
     } else if (value <= 0xffff) {
-      Struct.codecs.l8.serialize.call(this, 0xfd);
-      Struct.codecs.l16.serialize.call(this, value);
+      Struct.codecs.uint8.serialize.call(this, 0xfd);
+      Struct.codecs.uint16le.serialize.call(this, value);
     } else if (value <= 0xffffffff) {
-      Struct.codecs.l8.serialize.call(this, 0xfe);
-      Struct.codecs.l32.serialize.call(this, value);
+      Struct.codecs.uint8.serialize.call(this, 0xfe);
+      Struct.codecs.uint32le.serialize.call(this, value);
     } else {
-      Struct.codecs.l8.serialize.call(this, 0xff);
-      Struct.codecs.l64.serialize.call(this, value);
+      Struct.codecs.uint8.serialize.call(this, 0xff);
+      Struct.codecs.uint64le.serialize.call(this, value);
     }
   },
   parse: function () {
-    var first = Struct.codecs.b8.parse.call(this);
+    var first = Struct.codecs.uint8.parse.call(this);
     if (first < 0xfd) {
       return first;
     } else if (first === 0xfd) {
-      return Struct.codecs.l16.parse.call(this);
+      return Struct.codecs.uint16le.parse.call(this);
     } else if (first === 0xfe) {
-      return Struct.codecs.l32.parse.call(this);
+      return Struct.codecs.uint32le.parse.call(this);
     } else {
-      return Struct.codecs.l64.parse.call(this);
+      return Struct.codecs.uint64le.parse.call(this);
     }
   },
   size: function (value) {
@@ -44,10 +44,10 @@ Struct.addCodec('default', function (options) {
   var defaultValue = options.default || 0xff;
   return {
     serialize: function (value) {
-      Struct.codecs.b8.serialize.call(this, value || defaultValue);
+      Struct.codecs.uint8.serialize.call(this, value || defaultValue);
     },
     parse: function () {
-      return Struct.codecs.b8.parse.call(this);
+      return Struct.codecs.uint8.parse.call(this);
     },
     size: function () {
       return 1;
@@ -79,83 +79,72 @@ function assertStruct(struct, value, hex) {
 
 describe('struct', function () {
   describe('codecs', function () {
-    it('b8 (big-endian 8 bit number)', function () {
-      assertCodec(Struct.codecs.b8, 1, '01');
+    it('uint8 (8-bit number)', function () {
+      assertCodec(Struct.codecs.uint8, 1, '01');
     });
 
-    it('l8 (little-endian 8 bit number)', function () {
-      assertCodec(Struct.codecs.l8, 1, '01');
-    });
-
-    it('b8s (big-endian signed 8 bit number)', function () {
-      var codec = Struct.codecs.b8s;
+    it('int8 (signed 8-bit number)', function () {
+      var codec = Struct.codecs.int8;
       assertCodec(codec, 15, '0f');
       assertCodec(codec, -1, 'ff');
       assertCodec(codec, -8, 'f8');
     });
 
-    it('l8s (little-endian signed 8 bit number)', function () {
-      var codec = Struct.codecs.l8s;
-      assertCodec(codec, 15, '0f');
-      assertCodec(codec, -1, 'ff');
-      assertCodec(codec, -8, 'f8');
+    it('uint16be (big-endian 16-bit number)', function () {
+      assertCodec(Struct.codecs.uint16be, 500, '01f4');
     });
 
-    it('b16 (big-endian 16 bit number)', function () {
-      assertCodec(Struct.codecs.b16, 500, '01f4');
-    });
-
-    it('l16 (little-endian 16 bit number)', function () {
-      var codec = Struct.codecs.l16;
+    it('uint16le (little-endian 16-bit number)', function () {
+      var codec = Struct.codecs.uint16le;
       assertCodec(codec, 1, '0100');
       assertCodec(codec, 500, 'f401');
       assertCodec(codec, 596, '5402');
     });
 
-    it('b16s (big-endian signed 16 bit number)', function () {
-      var codec = Struct.codecs.b16s;
+    it('int16be (big-endian signed 16-bit number)', function () {
+      var codec = Struct.codecs.int16be;
       assertCodec(codec, 500, '01f4');
       assertCodec(codec, -1, 'ffff');
       assertCodec(codec, -56, 'ffc8');
       assertCodec(codec, -4324, 'ef1c');
     });
 
-    it('l16s (little-endian signed 16 bit number)', function () {
-      var codec = Struct.codecs.l16s;
+    it('int16le (little-endian signed 16-bit number)', function () {
+      var codec = Struct.codecs.int16le;
       assertCodec(codec, 500, 'f401');
       assertCodec(codec, -1, 'ffff');
       assertCodec(codec, -56, 'c8ff');
       assertCodec(codec, -4324, '1cef');
     });
 
-    it('b32 (big-endian 32 bit number)', function () {
-      var codec = Struct.codecs.b32;
+    it('uint32be (big-endian 32-bit number)', function () {
+      var codec = Struct.codecs.uint32be;
       assertCodec(codec, 500, '000001f4');
       assertCodec(codec, 3435978205, 'ccccdddd');
     });
 
-    it('l32 (little-endian 32 bit number)', function () {
-      var codec = Struct.codecs.l32;
+    it('uint32le(little-endian 32-bit number)', function () {
+      var codec = Struct.codecs.uint32le
       assertCodec(codec, 500, 'f4010000');
       assertCodec(codec, 3435978205, 'ddddcccc');
     });
 
-    it('b32s (big-endian signed 32 bit number)', function () {
-      var codec = Struct.codecs.b32s;
+    it('int32be (big-endian signed 32-bit number)', function () {
+      var codec = Struct.codecs.int32be;
       assertCodec(codec, 500, '000001f4');
       assertCodec(codec, -1, 'ffffffff');
       assertCodec(codec, -1232321, 'ffed323f');
     });
 
-    it('l32s (little-endian signed 32 bit number)', function () {
-      var codec = Struct.codecs.l32s;
+    it('int32le (little-endian signed 32-bit number)', function () {
+      var codec = Struct.codecs.int32le;
       assertCodec(codec, 500, 'f4010000');
       assertCodec(codec, -1, 'ffffffff');
       assertCodec(codec, -1232321, '3f32edff');
     });
 
-    it('b64 (big-endian 64 bit number)', function () {
-      var codec = Struct.codecs.b64;
+    it('uint64be (big-endian 64-bit number)', function () {
+      var codec = Struct.codecs.uint64be;
       assertCodec(codec, 500, '00000000000001f4');
       assertCodec(codec, Math.pow(2, 53) - 1, '001fffffffffffff');
       expect(function () {
@@ -163,8 +152,8 @@ describe('struct', function () {
       }).to.throw();
     });
 
-    it('l64 (little-endian 64 bit number)', function () {
-      var codec = Struct.codecs.l64;
+    it('uint64le (little-endian 64-bit number)', function () {
+      var codec = Struct.codecs.uint64le;
       assertCodec(codec, 500, 'f401000000000000');
       assertCodec(codec, Math.pow(2, 53) - 1, 'ffffffffffff1f00');
       expect(function () {
@@ -172,8 +161,8 @@ describe('struct', function () {
       }).to.throw();
     });
 
-    it('b64s (big-endian signed 64 bit number)', function () {
-      var codec = Struct.codecs.b64s;
+    it('int64be (big-endian signed 64-bit number)', function () {
+      var codec = Struct.codecs.int64be;
       assertCodec(codec, 500, '00000000000001f4');
       assertCodec(codec, -500, 'fffffffffffffe0c');
       assertCodec(codec, -(Math.pow(2, 53) - 1), 'ffe0000000000001');
@@ -182,8 +171,8 @@ describe('struct', function () {
       }).to.throw();
     });
 
-    it('l64s (little-endian signed 64 bit number)', function () {
-      var codec = Struct.codecs.l64s;
+    it('int64le (little-endian signed 64-bit number)', function () {
+      var codec = Struct.codecs.int64le;
       assertCodec(codec, 500, 'f401000000000000');
       assertCodec(codec, -500, '0cfeffffffffffff');
       assertCodec(codec, -(Math.pow(2, 53) - 1), '010000000000e0ff');
@@ -216,12 +205,12 @@ describe('struct', function () {
     });
 
     it('array', function () {
-      var codec = Struct.codecs.array({ length: 3, type: Struct.codecs.b8 });
+      var codec = Struct.codecs.array({ length: 3, type: Struct.codecs.uint8 });
       assertCodec(codec, [1, 2, 3], '010203');
     });
 
-    it('custom codec (lvarint)', function () {
-      var codec = Struct.codecs.lvarint;
+    it('custom codec (lvaruint)', function () {
+      var codec = Struct.codecs.lvaruint;
       assertCodec(codec, 0x00, '00');
       assertCodec(codec, 0xfc, 'fc');
       assertCodec(codec, 0x00fd, 'fdfd00');
@@ -235,86 +224,74 @@ describe('struct', function () {
   });
 
   describe('core types', function () {
-    it('b8 (big-endian 8 bit number)', function () {
-      var struct = Struct().b8('foo');
+    it('uint8 (8-bit number)', function () {
+      var struct = Struct().uint8('foo');
       assertStruct(struct, { foo: 1 }, '01');
     });
 
-    it('l8 (little-endian 8 bit number)', function () {
-      var struct = Struct().l8('foo');
-      assertStruct(struct, { foo: 1 }, '01');
-    });
-
-    it('b8s (big-endian signed 8 bit number)', function () {
-      var struct = Struct().b8s('foo');
+    it('int8 (signed 8-bit number)', function () {
+      var struct = Struct().int8('foo');
       assertStruct(struct, { foo: 15 }, '0f');
       assertStruct(struct, { foo: -1 }, 'ff');
       assertStruct(struct, { foo: -8 }, 'f8');
     });
 
-    it('l8s (little-endian signed 8 bit number)', function () {
-      var struct = Struct().l8s('foo');
-      assertStruct(struct, { foo: 15 }, '0f');
-      assertStruct(struct, { foo: -1 }, 'ff');
-      assertStruct(struct, { foo: -8 }, 'f8');
-    });
-
-    it('b16 (big-endian 16 bit number)', function () {
-      var struct = Struct().b16('foo');
+    it('uint16be (big-endian 16-bit number)', function () {
+      var struct = Struct().uint16be('foo');
       assertStruct(struct, { foo: 500 }, '01f4');
     });
 
-    it('l16 (little-endian 16 bit number)', function () {
-      var foo = Struct().l16('foo');
+    it('uint16le (little-endian 16-bit number)', function () {
+      var foo = Struct().uint16le('foo');
       assertStruct(foo, { foo: 1 }, '0100');
       assertStruct(foo, { foo: 500 }, 'f401');
       assertStruct(foo, { foo: 596 }, '5402');
     });
 
-    it('b16s (big-endian signed 16 bit number)', function () {
-      var struct = Struct().b16s('foo');
+    it('int16be (big-endian signed 16-bit number)', function () {
+      var struct = Struct().int16be('foo');
       assertStruct(struct, { foo: 500 }, '01f4');
       assertStruct(struct, { foo: -1 }, 'ffff');
       assertStruct(struct, { foo: -56 }, 'ffc8');
       assertStruct(struct, { foo: -4324 }, 'ef1c');
     });
 
-    it('l16s (little-endian signed 16 bit number)', function () {
-      var struct = Struct().l16s('foo');
+    it('int16le (little-endian signed 16-bit number)', function () {
+      var struct = Struct().int16le('foo');
       assertStruct(struct, { foo: 500 }, 'f401');
       assertStruct(struct, { foo: -1 }, 'ffff');
       assertStruct(struct, { foo: -56 }, 'c8ff');
       assertStruct(struct, { foo: -4324 }, '1cef');
     });
 
-    it('b32 (big-endian 32 bit number)', function () {
-      var struct = Struct().b32('foo');
+    it('uint32be (big-endian 32-bit number)', function () {
+      var struct = Struct().uint32be('foo');
       assertStruct(struct, { foo: 500 }, '000001f4');
       assertStruct(struct, { foo: 3435978205 }, 'ccccdddd');
     });
 
-    it('l32 (little-endian 32 bit number)', function () {
-      var struct = Struct().l32('foo');
+    it('uint32le (little-endian 32-bit number)', function () {
+      var struct = Struct().uint32le('foo');
       assertStruct(struct, { foo: 500 }, 'f4010000');
       assertStruct(struct, { foo: 3435978205 }, 'ddddcccc');
     });
 
-    it('b32s (big-endian signed 32 bit number)', function () {
-      var struct = Struct().b32s('foo');
+    it('int32be (big-endian signed 32-bit number)', function () {
+      var struct = Struct().int32be('foo');
       assertStruct(struct, { foo: 500 }, '000001f4');
       assertStruct(struct, { foo: -1 }, 'ffffffff');
       assertStruct(struct, { foo: -1232321 }, 'ffed323f');
     });
 
-    it('l32s (little-endian signed 32 bit number)', function () {
-      var struct = Struct().l32s('foo');
+    it('int32le (little-endian signed 32-bit number)', function () {
+      var struct = Struct().int32le('foo');
       assertStruct(struct, { foo: 500 }, 'f4010000');
       assertStruct(struct, { foo: -1 }, 'ffffffff');
       assertStruct(struct, { foo: -1232321 }, '3f32edff');
     });
 
-    it('b64 (big-endian 64 bit number)', function () {
-      var struct = Struct().b64('foo').b64('bar');
+    it('uint64be (big-endian 64-bit number)', function () {
+      var struct = Struct().uint64be('foo').uint64be('bar');
       assertStruct(struct, { foo: 500, bar: 501 }, '00000000000001f4' + '00000000000001f5');
       assertStruct(struct, { foo: Math.pow(2, 53) - 1, bar: Math.pow(2, 53) - 2 }, '001fffffffffffff' + '001ffffffffffffe');
       expect(function () {
@@ -322,8 +299,8 @@ describe('struct', function () {
       }).to.throw();
     });
 
-    it('l64 (little-endian 64 bit number)', function () {
-      var struct = Struct().l64('foo').l64('bar');
+    it('uint64le (little-endian 64-bit number)', function () {
+      var struct = Struct().uint64le('foo').uint64le('bar');
       assertStruct(struct, { foo: 500, bar: 501 }, 'f401000000000000' + 'f501000000000000');
       assertStruct(struct, { foo: Math.pow(2, 53) - 1, bar: Math.pow(2, 53) - 2 }, 'ffffffffffff1f00' + 'feffffffffff1f00');
       expect(function () {
@@ -331,8 +308,8 @@ describe('struct', function () {
       }).to.throw();
     });
 
-    it('b64s (big-endian signed 64 bit number)', function () {
-      var struct = Struct().b64s('foo').b64s('bar');
+    it('int64be (big-endian signed 64-bit number)', function () {
+      var struct = Struct().int64be('foo').int64be('bar');
       assertStruct(struct, { foo: 500, bar: 501 }, '00000000000001f4' + '00000000000001f5');
       assertStruct(struct, { foo: -500, bar: -501 }, 'fffffffffffffe0c' + 'fffffffffffffe0b');
       assertStruct(struct, { foo: -(Math.pow(2, 53) - 1), bar: -(Math.pow(2, 53) - 2) }, 'ffe0000000000001' + 'ffe0000000000002');
@@ -341,8 +318,8 @@ describe('struct', function () {
       }).to.throw();
     });
 
-    it('l64s (little-endian signed 64 bit number)', function () {
-      var struct = Struct().l64s('foo').l64s('bar');
+    it('int64le (little-endian signed 64-bit number)', function () {
+      var struct = Struct().int64le('foo').int64le('bar');
       assertStruct(struct, { foo: 500, bar: 501 }, 'f401000000000000' + 'f501000000000000');
       assertStruct(struct, { foo: -500, bar: -501 }, '0cfeffffffffffff' + '0bfeffffffffffff');
       assertStruct(struct, { foo: -(Math.pow(2, 53) - 1), bar: -(Math.pow(2, 53) - 2) }, '010000000000e0ff' + '020000000000e0ff');
@@ -379,7 +356,7 @@ describe('struct', function () {
       var struct = Struct()
         .array('foo', {
           length: 2,
-          type: Struct.codecs.b8
+          type: Struct.codecs.uint8
         });
       assertStruct(struct, { foo: [8, 16] }, '0810');
     });
@@ -388,7 +365,7 @@ describe('struct', function () {
       var struct = Struct()
         .array('foo', {
           length: 2,
-          type: Struct().b8('bar')
+          type: Struct().uint8('bar')
         });
       assertStruct(struct, { foo: [{ bar: 8 }, { bar: 16 }] }, '0810');
     });
@@ -405,7 +382,7 @@ describe('struct', function () {
 
   it('variable length buffer', function () {
     var struct = Struct()
-      .l8('len')
+      .uint8('len')
       .buffer('buf', {
         length: function () { return this.len; }
       });
@@ -422,7 +399,7 @@ describe('struct', function () {
           .array('second', {
             length: 2,
             type: Struct()
-              .array('third', { length: 1, type: Struct.codecs.b8 })
+              .array('third', { length: 1, type: Struct.codecs.uint8 })
           })
       });
     assertStruct(struct, {
@@ -451,42 +428,42 @@ describe('struct', function () {
 
   it('complex example (including custom codec)', function () {
     var struct = Struct()
-      .b8('b8')
-      .l32s('l32s')
+      .uint8('uint8')
+      .int32le('int32le')
       .array('array', {
         length: 2,
         type: Struct()
           .str('str', { length: 10 })
-          .b16('b16')
+          .uint16be('uint16be')
           .buffer('buffer', { length: 4 })
-          .lvarint('lvarint')
+          .lvaruint('lvaruint')
       })
       .array('array2', {
         length: 3,
         type: Struct()
-          .b32('b32')
+          .uint32be('uint32be')
       });
     assertStruct(struct, {
-      b8: 32,
-      l32s: -432213214,
+      uint8: 32,
+      int32le: -432213214,
       array: [
         {
           str: 'hellothere',
-          b16: 256,
+          uint16be: 256,
           buffer: new Buffer([0x10, 0x12, 0x14, 0x16]),
-          lvarint: 0x01
+          lvaruint: 0x01
         },
         {
           str: 'goodbyenow',
-          b16: 65535,
+          uint16be: 65535,
           buffer: new Buffer([0x0f, 0x0d, 0x0b, 0x09]),
-          lvarint: 0x2345
+          lvaruint: 0x2345
         }
       ],
       array2: [
-        { b32: 0 },
-        { b32: Math.pow(2, 32) - 1 },
-        { b32: 12345678 }
+        { uint32be: 0 },
+        { uint32be: Math.pow(2, 32) - 1 },
+        { uint32be: 12345678 }
       ]
     }, '20' + '22f33ce6' +
       '68656c6c6f7468657265' + '0100' + '10121416' + '01' +
