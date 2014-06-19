@@ -1,6 +1,6 @@
 {
   "name": "buffer-pack",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Define a format to pack and unpack objects to/from buffers",
   "main": "./lib/index.js",
   "contributors": [
