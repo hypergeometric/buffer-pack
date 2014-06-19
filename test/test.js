@@ -1,30 +1,30 @@
-var Struct = require('../');
+var Packer = require('../');
 
-Struct.addCodec('lvaruint', {
-  serialize: function (value) {
+Packer.addCodec('lvaruint', {
+  pack: function (value) {
     if (value < 0xfd) {
-      Struct.codecs.uint8().serialize.call(this, value);
+      Packer.codecs.uint8().pack.call(this, value);
     } else if (value <= 0xffff) {
-      Struct.codecs.uint8().serialize.call(this, 0xfd);
-      Struct.codecs.uint16le().serialize.call(this, value);
+      Packer.codecs.uint8().pack.call(this, 0xfd);
+      Packer.codecs.uint16le().pack.call(this, value);
     } else if (value <= 0xffffffff) {
-      Struct.codecs.uint8().serialize.call(this, 0xfe);
-      Struct.codecs.uint32le().serialize.call(this, value);
+      Packer.codecs.uint8().pack.call(this, 0xfe);
+      Packer.codecs.uint32le().pack.call(this, value);
     } else {
-      Struct.codecs.uint8().serialize.call(this, 0xff);
-      Struct.codecs.uint64le().serialize.call(this, value);
+      Packer.codecs.uint8().pack.call(this, 0xff);
+      Packer.codecs.uint64le().pack.call(this, value);
     }
   },
-  parse: function () {
-    var first = Struct.codecs.uint8().parse.call(this);
+  unpack: function () {
+    var first = Packer.codecs.uint8().unpack.call(this);
     if (first < 0xfd) {
       return first;
     } else if (first === 0xfd) {
-      return Struct.codecs.uint16le().parse.call(this);
+      return Packer.codecs.uint16le().unpack.call(this);
     } else if (first === 0xfe) {
-      return Struct.codecs.uint32le().parse.call(this);
+      return Packer.codecs.uint32le().unpack.call(this);
     } else {
-      return Struct.codecs.uint64le().parse.call(this);
+      return Packer.codecs.uint64le().unpack.call(this);
     }
   },
   size: function (value) {
@@ -40,14 +40,14 @@ Struct.addCodec('lvaruint', {
   }
 });
 
-Struct.addCodec('default', function (options) {
+Packer.addCodec('default', function (options) {
   var defaultValue = options.default || 0xff;
   return {
-    serialize: function (value) {
-      Struct.codecs.uint8().serialize.call(this, value || defaultValue);
+    pack: function (value) {
+      Packer.codecs.uint8().pack.call(this, value || defaultValue);
     },
-    parse: function () {
-      return Struct.codecs.uint8().parse.call(this);
+    unpack: function () {
+      return Packer.codecs.uint8().unpack.call(this);
     },
     size: function () {
       return 1;
@@ -61,48 +61,48 @@ function assertCodec(codec, value, hex) {
 }
 
 function assertCodecEncode(codec, value, hex) {
-  var serialized = new Buffer(codec.size(value));
-  serialized.fill(0xff);
-  codec.serialize.call({ buffer: serialized, offset: 0 }, value);
-  expect(serialized).to.deep.equal(new Buffer(hex, 'hex'));
+  var packd = new Buffer(codec.size(value));
+  packd.fill(0xff);
+  codec.pack.call({ buffer: packd, offset: 0 }, value);
+  expect(packd).to.deep.equal(new Buffer(hex, 'hex'));
 }
 
 function assertCodecDecode(codec, value, hex) {
-  var parsed = codec.parse.call({ buffer: new Buffer(hex, 'hex'), offset: 0 });
-  expect(parsed).to.deep.equal(value);
+  var unpackd = codec.unpack.call({ buffer: new Buffer(hex, 'hex'), offset: 0 });
+  expect(unpackd).to.deep.equal(value);
 }
 
-function assertStruct(struct, value, hex) {
-  expect(struct.serialize(value).toString('hex')).to.deep.equal(hex);
-  expect(struct.parse(new Buffer(hex, 'hex'))).to.deep.equal(value);
+function assertPacker(packer, value, hex) {
+  expect(packer.pack(value).toString('hex')).to.deep.equal(hex);
+  expect(packer.unpack(new Buffer(hex, 'hex'))).to.deep.equal(value);
 }
 
-describe('struct', function () {
+describe('buffer-pack', function () {
   describe('codecs', function () {
     it('uint8 (8-bit number)', function () {
-      assertCodec(Struct.codecs.uint8(), 1, '01');
+      assertCodec(Packer.codecs.uint8(), 1, '01');
     });
 
     it('int8 (signed 8-bit number)', function () {
-      var codec = Struct.codecs.int8();
+      var codec = Packer.codecs.int8();
       assertCodec(codec, 15, '0f');
       assertCodec(codec, -1, 'ff');
       assertCodec(codec, -8, 'f8');
     });
 
     it('uint16be (big-endian 16-bit number)', function () {
-      assertCodec(Struct.codecs.uint16be(), 500, '01f4');
+      assertCodec(Packer.codecs.uint16be(), 500, '01f4');
     });
 
     it('uint16le (little-endian 16-bit number)', function () {
-      var codec = Struct.codecs.uint16le();
+      var codec = Packer.codecs.uint16le();
       assertCodec(codec, 1, '0100');
       assertCodec(codec, 500, 'f401');
       assertCodec(codec, 596, '5402');
     });
 
     it('int16be (big-endian signed 16-bit number)', function () {
-      var codec = Struct.codecs.int16be();
+      var codec = Packer.codecs.int16be();
       assertCodec(codec, 500, '01f4');
       assertCodec(codec, -1, 'ffff');
       assertCodec(codec, -56, 'ffc8');
@@ -110,7 +110,7 @@ describe('struct', function () {
     });
 
     it('int16le (little-endian signed 16-bit number)', function () {
-      var codec = Struct.codecs.int16le();
+      var codec = Packer.codecs.int16le();
       assertCodec(codec, 500, 'f401');
       assertCodec(codec, -1, 'ffff');
       assertCodec(codec, -56, 'c8ff');
@@ -118,99 +118,99 @@ describe('struct', function () {
     });
 
     it('uint32be (big-endian 32-bit number)', function () {
-      var codec = Struct.codecs.uint32be();
+      var codec = Packer.codecs.uint32be();
       assertCodec(codec, 500, '000001f4');
       assertCodec(codec, 3435978205, 'ccccdddd');
     });
 
     it('uint32le(little-endian 32-bit number)', function () {
-      var codec = Struct.codecs.uint32le();
+      var codec = Packer.codecs.uint32le();
       assertCodec(codec, 500, 'f4010000');
       assertCodec(codec, 3435978205, 'ddddcccc');
     });
 
     it('int32be (big-endian signed 32-bit number)', function () {
-      var codec = Struct.codecs.int32be();
+      var codec = Packer.codecs.int32be();
       assertCodec(codec, 500, '000001f4');
       assertCodec(codec, -1, 'ffffffff');
       assertCodec(codec, -1232321, 'ffed323f');
     });
 
     it('int32le (little-endian signed 32-bit number)', function () {
-      var codec = Struct.codecs.int32le();
+      var codec = Packer.codecs.int32le();
       assertCodec(codec, 500, 'f4010000');
       assertCodec(codec, -1, 'ffffffff');
       assertCodec(codec, -1232321, '3f32edff');
     });
 
     it('uint64be (big-endian 64-bit number)', function () {
-      var codec = Struct.codecs.uint64be();
+      var codec = Packer.codecs.uint64be();
       assertCodec(codec, 500, '00000000000001f4');
       assertCodec(codec, Math.pow(2, 53) - 1, '001fffffffffffff');
       expect(function () {
-        codec.serialize(Math.pow(2, 53));
+        codec.pack(Math.pow(2, 53));
       }).to.throw();
     });
 
     it('uint64le (little-endian 64-bit number)', function () {
-      var codec = Struct.codecs.uint64le();
+      var codec = Packer.codecs.uint64le();
       assertCodec(codec, 500, 'f401000000000000');
       assertCodec(codec, Math.pow(2, 53) - 1, 'ffffffffffff1f00');
       expect(function () {
-        codec.serialize(Math.pow(2, 53));
+        codec.pack(Math.pow(2, 53));
       }).to.throw();
     });
 
     it('int64be (big-endian signed 64-bit number)', function () {
-      var codec = Struct.codecs.int64be();
+      var codec = Packer.codecs.int64be();
       assertCodec(codec, 500, '00000000000001f4');
       assertCodec(codec, -500, 'fffffffffffffe0c');
       assertCodec(codec, -(Math.pow(2, 53) - 1), 'ffe0000000000001');
       expect(function () {
-        codec.serialize(-Math.pow(2, 53));
+        codec.pack(-Math.pow(2, 53));
       }).to.throw();
     });
 
     it('int64le (little-endian signed 64-bit number)', function () {
-      var codec = Struct.codecs.int64le();
+      var codec = Packer.codecs.int64le();
       assertCodec(codec, 500, 'f401000000000000');
       assertCodec(codec, -500, '0cfeffffffffffff');
       assertCodec(codec, -(Math.pow(2, 53) - 1), '010000000000e0ff');
       expect(function () {
-        codec.serialize(-Math.pow(2, 53));
+        codec.pack(-Math.pow(2, 53));
       }).to.throw();
     });
 
     it('buffer', function () {
-      var codec = Struct.codecs.buffer({ length: 4 });
+      var codec = Packer.codecs.buffer({ length: 4 });
       assertCodec(codec, new Buffer([1, 2, 3, 4]), '01020304');
     });
 
     it('str(ascii)', function () {
-      var codec = Struct.codecs.str({ length: 2, encoding: 'ascii' });
+      var codec = Packer.codecs.str({ length: 2, encoding: 'ascii' });
       assertCodec(codec, 'ab', '6162');
     });
 
     it('str(utf8)', function () {
-      var codec = Struct.codecs.str({ length: 3, encoding: 'utf8' });
+      var codec = Packer.codecs.str({ length: 3, encoding: 'utf8' });
       assertCodec(codec, '4\u00a3', '34c2a3');
     });
 
     it('str(utf8, pad)', function () {
-      var codec = Struct.codecs.str({ length: 3, pad: 'a' });
+      var codec = Packer.codecs.str({ length: 3, pad: 'a' });
       assertCodec(codec, '4', '346161');
 
-      codec = Struct.codecs.str({ length: 3, pad: 0 });
+      codec = Packer.codecs.str({ length: 3, pad: 0 });
       assertCodec(codec, '4', '340000');
     });
 
     it('array', function () {
-      var codec = Struct.codecs.array({ length: 3, type: Struct.codecs.uint8() });
+      var codec = Packer.codecs.array({ length: 3, type: Packer.codecs.uint8() });
       assertCodec(codec, [1, 2, 3], '010203');
     });
 
     it('custom codec (lvaruint)', function () {
-      var codec = Struct.codecs.lvaruint;
+      var codec = Packer.codecs.lvaruint;
       assertCodec(codec, 0x00, '00');
       assertCodec(codec, 0xfc, 'fc');
       assertCodec(codec, 0x00fd, 'fdfd00');
@@ -225,122 +225,122 @@ describe('struct', function () {
 
   describe('core types', function () {
     it('uint8 (8-bit number)', function () {
-      var struct = Struct().uint8('foo');
-      assertStruct(struct, { foo: 1 }, '01');
+      var packer = Packer().uint8('foo');
+      assertPacker(packer, { foo: 1 }, '01');
     });
 
     it('int8 (signed 8-bit number)', function () {
-      var struct = Struct().int8('foo');
-      assertStruct(struct, { foo: 15 }, '0f');
-      assertStruct(struct, { foo: -1 }, 'ff');
-      assertStruct(struct, { foo: -8 }, 'f8');
+      var packer = Packer().int8('foo');
+      assertPacker(packer, { foo: 15 }, '0f');
+      assertPacker(packer, { foo: -1 }, 'ff');
+      assertPacker(packer, { foo: -8 }, 'f8');
     });
 
     it('uint16be (big-endian 16-bit number)', function () {
-      var struct = Struct().uint16be('foo');
-      assertStruct(struct, { foo: 500 }, '01f4');
+      var packer = Packer().uint16be('foo');
+      assertPacker(packer, { foo: 500 }, '01f4');
     });
 
     it('uint16le (little-endian 16-bit number)', function () {
-      var foo = Struct().uint16le('foo');
-      assertStruct(foo, { foo: 1 }, '0100');
-      assertStruct(foo, { foo: 500 }, 'f401');
-      assertStruct(foo, { foo: 596 }, '5402');
+      var foo = Packer().uint16le('foo');
+      assertPacker(foo, { foo: 1 }, '0100');
+      assertPacker(foo, { foo: 500 }, 'f401');
+      assertPacker(foo, { foo: 596 }, '5402');
     });
 
     it('int16be (big-endian signed 16-bit number)', function () {
-      var struct = Struct().int16be('foo');
-      assertStruct(struct, { foo: 500 }, '01f4');
-      assertStruct(struct, { foo: -1 }, 'ffff');
-      assertStruct(struct, { foo: -56 }, 'ffc8');
-      assertStruct(struct, { foo: -4324 }, 'ef1c');
+      var packer = Packer().int16be('foo');
+      assertPacker(packer, { foo: 500 }, '01f4');
+      assertPacker(packer, { foo: -1 }, 'ffff');
+      assertPacker(packer, { foo: -56 }, 'ffc8');
+      assertPacker(packer, { foo: -4324 }, 'ef1c');
     });
 
     it('int16le (little-endian signed 16-bit number)', function () {
-      var struct = Struct().int16le('foo');
-      assertStruct(struct, { foo: 500 }, 'f401');
-      assertStruct(struct, { foo: -1 }, 'ffff');
-      assertStruct(struct, { foo: -56 }, 'c8ff');
-      assertStruct(struct, { foo: -4324 }, '1cef');
+      var packer = Packer().int16le('foo');
+      assertPacker(packer, { foo: 500 }, 'f401');
+      assertPacker(packer, { foo: -1 }, 'ffff');
+      assertPacker(packer, { foo: -56 }, 'c8ff');
+      assertPacker(packer, { foo: -4324 }, '1cef');
     });
 
     it('uint32be (big-endian 32-bit number)', function () {
-      var struct = Struct().uint32be('foo');
-      assertStruct(struct, { foo: 500 }, '000001f4');
-      assertStruct(struct, { foo: 3435978205 }, 'ccccdddd');
+      var packer = Packer().uint32be('foo');
+      assertPacker(packer, { foo: 500 }, '000001f4');
+      assertPacker(packer, { foo: 3435978205 }, 'ccccdddd');
     });
 
     it('uint32le (little-endian 32-bit number)', function () {
-      var struct = Struct().uint32le('foo');
-      assertStruct(struct, { foo: 500 }, 'f4010000');
-      assertStruct(struct, { foo: 3435978205 }, 'ddddcccc');
+      var packer = Packer().uint32le('foo');
+      assertPacker(packer, { foo: 500 }, 'f4010000');
+      assertPacker(packer, { foo: 3435978205 }, 'ddddcccc');
     });
 
     it('int32be (big-endian signed 32-bit number)', function () {
-      var struct = Struct().int32be('foo');
-      assertStruct(struct, { foo: 500 }, '000001f4');
-      assertStruct(struct, { foo: -1 }, 'ffffffff');
-      assertStruct(struct, { foo: -1232321 }, 'ffed323f');
+      var packer = Packer().int32be('foo');
+      assertPacker(packer, { foo: 500 }, '000001f4');
+      assertPacker(packer, { foo: -1 }, 'ffffffff');
+      assertPacker(packer, { foo: -1232321 }, 'ffed323f');
     });
 
     it('int32le (little-endian signed 32-bit number)', function () {
-      var struct = Struct().int32le('foo');
-      assertStruct(struct, { foo: 500 }, 'f4010000');
-      assertStruct(struct, { foo: -1 }, 'ffffffff');
-      assertStruct(struct, { foo: -1232321 }, '3f32edff');
+      var packer = Packer().int32le('foo');
+      assertPacker(packer, { foo: 500 }, 'f4010000');
+      assertPacker(packer, { foo: -1 }, 'ffffffff');
+      assertPacker(packer, { foo: -1232321 }, '3f32edff');
     });
 
     it('uint64be (big-endian 64-bit number)', function () {
-      var struct = Struct().uint64be('foo').uint64be('bar');
-      assertStruct(struct, { foo: 500, bar: 501 }, '00000000000001f4' + '00000000000001f5');
-      assertStruct(struct, { foo: Math.pow(2, 53) - 1, bar: Math.pow(2, 53) - 2 }, '001fffffffffffff' + '001ffffffffffffe');
+      var packer = Packer().uint64be('foo').uint64be('bar');
+      assertPacker(packer, { foo: 500, bar: 501 }, '00000000000001f4' + '00000000000001f5');
+      assertPacker(packer, { foo: Math.pow(2, 53) - 1, bar: Math.pow(2, 53) - 2 }, '001fffffffffffff' + '001ffffffffffffe');
       expect(function () {
-        struct.serialize({ foo: Math.pow(2, 53), bar: Math.pow(2, 53) });
+        packer.pack({ foo: Math.pow(2, 53), bar: Math.pow(2, 53) });
       }).to.throw();
     });
 
     it('uint64le (little-endian 64-bit number)', function () {
-      var struct = Struct().uint64le('foo').uint64le('bar');
-      assertStruct(struct, { foo: 500, bar: 501 }, 'f401000000000000' + 'f501000000000000');
-      assertStruct(struct, { foo: Math.pow(2, 53) - 1, bar: Math.pow(2, 53) - 2 }, 'ffffffffffff1f00' + 'feffffffffff1f00');
+      var packer = Packer().uint64le('foo').uint64le('bar');
+      assertPacker(packer, { foo: 500, bar: 501 }, 'f401000000000000' + 'f501000000000000');
+      assertPacker(packer, { foo: Math.pow(2, 53) - 1, bar: Math.pow(2, 53) - 2 }, 'ffffffffffff1f00' + 'feffffffffff1f00');
       expect(function () {
-        struct.serialize({ foo: Math.pow(2, 53), bar:Math.pow(2, 53) });
+        packer.pack({ foo: Math.pow(2, 53), bar:Math.pow(2, 53) });
       }).to.throw();
     });
 
     it('int64be (big-endian signed 64-bit number)', function () {
-      var struct = Struct().int64be('foo').int64be('bar');
-      assertStruct(struct, { foo: 500, bar: 501 }, '00000000000001f4' + '00000000000001f5');
-      assertStruct(struct, { foo: -500, bar: -501 }, 'fffffffffffffe0c' + 'fffffffffffffe0b');
-      assertStruct(struct, { foo: -(Math.pow(2, 53) - 1), bar: -(Math.pow(2, 53) - 2) }, 'ffe0000000000001' + 'ffe0000000000002');
+      var packer = Packer().int64be('foo').int64be('bar');
+      assertPacker(packer, { foo: 500, bar: 501 }, '00000000000001f4' + '00000000000001f5');
+      assertPacker(packer, { foo: -500, bar: -501 }, 'fffffffffffffe0c' + 'fffffffffffffe0b');
+      assertPacker(packer, { foo: -(Math.pow(2, 53) - 1), bar: -(Math.pow(2, 53) - 2) }, 'ffe0000000000001' + 'ffe0000000000002');
       expect(function () {
-        struct.serialize({ foo: -Math.pow(2, 53), bar: -Math.pow(2, 53) });
+        packer.pack({ foo: -Math.pow(2, 53), bar: -Math.pow(2, 53) });
       }).to.throw();
     });
 
     it('int64le (little-endian signed 64-bit number)', function () {
-      var struct = Struct().int64le('foo').int64le('bar');
-      assertStruct(struct, { foo: 500, bar: 501 }, 'f401000000000000' + 'f501000000000000');
-      assertStruct(struct, { foo: -500, bar: -501 }, '0cfeffffffffffff' + '0bfeffffffffffff');
-      assertStruct(struct, { foo: -(Math.pow(2, 53) - 1), bar: -(Math.pow(2, 53) - 2) }, '010000000000e0ff' + '020000000000e0ff');
+      var packer = Packer().int64le('foo').int64le('bar');
+      assertPacker(packer, { foo: 500, bar: 501 }, 'f401000000000000' + 'f501000000000000');
+      assertPacker(packer, { foo: -500, bar: -501 }, '0cfeffffffffffff' + '0bfeffffffffffff');
+      assertPacker(packer, { foo: -(Math.pow(2, 53) - 1), bar: -(Math.pow(2, 53) - 2) }, '010000000000e0ff' + '020000000000e0ff');
       expect(function () {
-        struct.serialize({ foo: -Math.pow(2, 53), bar: -Math.pow(2, 53) });
+        packer.pack({ foo: -Math.pow(2, 53), bar: -Math.pow(2, 53) });
       }).to.throw();
     });
 
     it('buffer', function () {
-      var struct = Struct()
+      var packer = Packer()
         .buffer('foo', {
           length: 4
         })
         .buffer('bar', {
           length: 3
         });
-      assertStruct(struct, { foo: new Buffer([1, 2, 3, 4]), bar: new Buffer([5, 6, 7]) }, '01020304050607');
+      assertPacker(packer, { foo: new Buffer([1, 2, 3, 4]), bar: new Buffer([5, 6, 7]) }, '01020304050607');
     });
 
     it('str', function () {
-      var struct = Struct()
+      var packer = Packer()
         .str('foo', {
           length: 2,
           encoding: 'ascii'
@@ -349,60 +349,60 @@ describe('struct', function () {
           length: 3,
           encoding: 'utf8'
         });
-      assertStruct(struct, { foo: 'ab', bar: '\u00a34' }, '6162c2a334');
+      assertPacker(packer, { foo: 'ab', bar: '\u00a34' }, '6162c2a334');
     });
 
     it('array (codec)', function () {
-      var struct = Struct()
+      var packer = Packer()
         .array('foo', {
           length: 2,
-          type: Struct.codecs.uint8()
+          type: Packer.codecs.uint8()
         });
-      assertStruct(struct, { foo: [8, 16] }, '0810');
+      assertPacker(packer, { foo: [8, 16] }, '0810');
     });
 
-    it('array (struct)', function () {
-      var struct = Struct()
+    it('array (packer)', function () {
+      var packer = Packer()
         .array('foo', {
           length: 2,
-          type: Struct().uint8('bar')
+          type: Packer().uint8('bar')
         });
-      assertStruct(struct, { foo: [{ bar: 8 }, { bar: 16 }] }, '0810');
+      assertPacker(packer, { foo: [{ bar: 8 }, { bar: 16 }] }, '0810');
     });
   });
 
   it('default values', function () {
-    var struct = Struct()
+    var packer = Packer()
       .uint8('foo', { default: 0xcc })
       .uint8('bar', { default: 0xff });
-    assertStruct(struct, { foo: 1, bar: 2 }, '0102');
-    expect(struct.serialize({}).toString('hex')).to.equal('ccff');
-    expect(struct.parse(new Buffer('abcd', 'hex'))).to.deep.equal({ foo: 0xab, bar: 0xcd });
+    assertPacker(packer, { foo: 1, bar: 2 }, '0102');
+    expect(packer.pack({}).toString('hex')).to.equal('ccff');
+    expect(packer.unpack(new Buffer('abcd', 'hex'))).to.deep.equal({ foo: 0xab, bar: 0xcd });
   });
 
   it('variable length buffer', function () {
-    var struct = Struct()
+    var packer = Packer()
       .uint8('len')
       .buffer('buf', {
         length: function () { return this.len; }
       });
-    assertStruct(struct, { len: 0, buf: new Buffer(0) }, '00');
-    assertStruct(struct, { len: 1, buf: new Buffer([0]) }, '0100');
-    assertStruct(struct, { len: 8, buf: new Buffer([0, 1, 2, 3, 4, 5, 6, 7]) }, '080001020304050607');
+    assertPacker(packer, { len: 0, buf: new Buffer(0) }, '00');
+    assertPacker(packer, { len: 1, buf: new Buffer([0]) }, '0100');
+    assertPacker(packer, { len: 8, buf: new Buffer([0, 1, 2, 3, 4, 5, 6, 7]) }, '080001020304050607');
   });
 
   it('nested arrays', function () {
-    var struct = Struct()
+    var packer = Packer()
       .array('first', {
         length: 3,
-        type: Struct()
+        type: Packer()
           .array('second', {
             length: 2,
-            type: Struct()
-              .array('third', { length: 1, type: Struct.codecs.uint8() })
+            type: Packer()
+              .array('third', { length: 1, type: Packer.codecs.uint8() })
           })
       });
-    assertStruct(struct, {
+    assertPacker(packer, {
       first: [
         {
           second: [
@@ -427,12 +427,12 @@ describe('struct', function () {
   });
 
   it('complex example (including custom codec)', function () {
-    var struct = Struct()
+    var packer = Packer()
       .uint8('uint8')
       .int32le('int32le')
       .array('array', {
         length: 2,
-        type: Struct()
+        type: Packer()
           .str('str', { length: 10 })
           .uint16be('uint16be')
           .buffer('buffer', { length: 4 })
@@ -440,10 +440,10 @@ describe('struct', function () {
       })
       .array('array2', {
         length: 3,
-        type: Struct()
+        type: Packer()
           .uint32be('uint32be')
       });
-    assertStruct(struct, {
+    assertPacker(packer, {
       uint8: 32,
       int32le: -432213214,
       array: [

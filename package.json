@@ -1,18 +1,21 @@
 {
-  "name": "struct",
+  "name": "buffer-pack",
   "version": "0.0.1",
-  "description": "",
-  "main": "lib/index.js",
+  "description": "Define a format to pack and unpack objects to/from buffers",
+  "main": "./lib/index.js",
+  "contributors": [
+    "Ben Shepheard <ben@coinative.com>",
+    "Dan Howitt <dan@coinative.com>"
+  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/coinative/struct.git"
+    "url": "https://github.com/coinative/buffer-pack.git"
   },
-  "author": "",
-  "license": "MIT",
   "bugs": {
-    "url": "https://github.com/coinative/struct/issues"
+    "url": "https://github.com/coinative/buffer-pack/issues"
   },
-  "homepage": "https://github.com/coinative/struct",
+  "homepage": "https://github.com/coinative/buffer-pack",
+  "license": "MIT",
   "scripts": {
     "test": "./node_modules/.bin/mocha -r ./test/support/env -R dot ./test",
     "test-cov": "./node_modules/.bin/istanbul cover ./node_modules/mocha/bin/_mocha -- -r ./test/support/env -R dot ./test",
@@ -20,7 +23,7 @@
   },
   "devDependencies": {
     "chai": "^1.9.1",
-    "istanbul": "^0.2.10",
-    "mocha": "^1.19.0"
+    "istanbul": "^0.2.11",
+    "mocha": "^1.20.1"
   }
 }

@@ -1,15 +1,13 @@
-# @coinative/struct
+# buffer-pack
 
-[![Build Status](https://travis-ci.org/coinative/struct.svg?branch=master)](https://travis-ci.org/coinative/struct) [![Coverage Status](https://img.shields.io/coveralls/coinative/struct.svg)](https://coveralls.io/r/coinative/struct?branch=master)
+[![Build Status](https://travis-ci.org/coinative/buffer-pack.svg?branch=master)](https://travis-ci.org/coinative/buffer-pack) [![Coverage Status](https://img.shields.io/coveralls/coinative/buffer-pack.svg)](https://coveralls.io/r/coinative/buffer-pack?branch=master)
 
-Define structures to use for parsing and serialization.
+Define a format to pack and unpack objects to/from buffers.
 
 ## Install
 
-Not currently hosted on npmjs.org. Take this module as a git dependency via:
-
 ```
-npm install coinative/struct
+npm install buffer-pack
 ```
 
 ## License
